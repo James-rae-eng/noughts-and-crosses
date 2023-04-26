@@ -67,7 +67,46 @@ function Gameboard() {
     }
   };
 
-  return { getBoard, placeMark };
+  function checkWinner() {
+    let win = false;
+    // Check rows
+    for (let i = 0; i < 3; i += 1) {
+      if (board[i][0].getValue() === '-' || board[i][1].getValue() === '-' || board[i][2].getValue() === '-') {
+        continue;
+      }
+      if (board[i][0].getValue() === board[i][1].getValue()
+      && board[i][1].getValue() === board[i][2].getValue()) {
+        win = true;
+      }
+    }
+
+    // Check columns
+    for (let i = 0; i < 3; i += 1) {
+      if (board[0][i].getValue() === '-' || board[1][i].getValue() === '-' || board[2][i].getValue() === '-') {
+        continue;
+      }
+      if (board[0][i].getValue() === board[1][i].getValue()
+      && board[1][i].getValue() === board[2][i].getValue()) {
+        win = true;
+      }
+    }
+
+    // Check diagonals
+
+    if (board[1][1].getValue() !== '-') {
+      if (board[0][0].getValue() === board[1][1].getValue()
+      && board[1][1].getValue() === board[2][2].getValue()) {
+        win = true;
+      } else if (board[0][2].getValue() === board[1][1].getValue()
+    && board[1][1].getValue() === board[2][0].getValue()) {
+        win = true;
+      }
+    }
+
+    return win;
+  }
+
+  return { getBoard, placeMark, checkWinner };
 }
 
 /* The GameController will be responsible for controlling the
@@ -84,10 +123,12 @@ function GameController(
     {
       name: playerOneName,
       token: 'o',
+      score: 0,
     },
     {
       name: playerTwoName,
       token: 'x',
+      score: 0,
     },
   ];
 
@@ -98,21 +139,30 @@ function GameController(
   };
   const getActivePlayer = () => activePlayer;
 
+  // Variable to track if a winner is detected
+  let winner = false;
+
+  const getWinner = () => winner;
+
   const playRound = (position) => {
     // Drop a get input and place mark for the current player
     board.placeMark(position, getActivePlayer().token);
 
-    /*  This is where we would check for a winner and handle that logic,
-            such as a win message. */
-
+    // Check for a winner and let the seperate function handle the logic
+    if (board.checkWinner() === false) {
     // Switch player turn
-    switchPlayerTurn();
+      switchPlayerTurn();
+    } else {
+      winner = true;
+      getActivePlayer().score += 1;
+    }
   };
 
   return {
     playRound,
     getActivePlayer,
     getBoard: board.getBoard,
+    getWinner,
   };
 }
 
@@ -148,6 +198,17 @@ function ScreenController() {
     });
   };
 
+  // Display game over message, update player score, reset board.
+  function displayWinner(name, score) {
+    // update score for winning player and alert
+    if (name === 'Player One') {
+      document.getElementById('score1').innerHTML = score;
+    } else {
+      document.getElementById('score2').innerHTML = score;
+    }
+    alert(`${name} Wins!`);
+  }
+
   // Add event listener for the board
   function clickHandlerBoard(e) {
     const selectedId = e.target.dataset.id;
@@ -156,6 +217,10 @@ function ScreenController() {
 
     game.playRound(selectedId);
     updateScreen();
+    // Check if game over
+    if (game.getWinner() === true) {
+      displayWinner(game.getActivePlayer().name, game.getActivePlayer().score);
+    }
   }
   boardDiv.addEventListener('click', clickHandlerBoard);
 
